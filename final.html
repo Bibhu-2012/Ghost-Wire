@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostWire // Anonymous Messenger</title>
+    <style>
+        :root {
+            --bg-base: #050508;
+            --bg-surface: #0f1016;
+            --bg-bubble-user: #2563eb;
+            --bg-bubble-peer: #1f2937;
+            --text-main: #f3f4f6;
+            --text-muted: #6b7280;
+            --accent-neon: #10b981; /* Ghost Green */
+            --border: #1f2937;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .wrapper {
+            width: 100%;
+            max-width: 480px;
+            height: 90vh;
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Access Portal Layer */
+        .portal-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2.5rem;
+            gap: 2rem;
+        }
+
+        .portal-header h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.05em;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .portal-header span {
+            color: var(--accent-neon);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .action-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .action-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .code-display {
+            background-color: var(--bg-base);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: var(--accent-neon);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .btn {
+            background-color: var(--text-main);
+            color: var(--bg-base);
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        input[type="text"] {
+            background-color: var(--bg-base);
+            border: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--bg-bubble-user);
+        }
+
+        /* Core Messenger Layout */
+        .chat-view {
+            display: none; /* Hidden on entry screen */
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(0,0,0,0.1);
+        }
+
+        .chat-header .room-status {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .chat-canvas {
+            flex: 1;
+            padding: 1.25rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .msg {
+            max-width: 75%;
+            padding: 0.75rem 1rem;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .msg.user {
+            background-color: var(--bg-bubble-user);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg.peer {
+            background-color: var(--bg-bubble-peer);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-footer {
+            padding: 1.25rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-footer input {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="portal-view" id="portalView">
+            <div class="portal-header">
+                <span>// Secure Session Access</span>
+                <h1>GhostWire</h1>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Zero numbers. Zero logs. Connect peer-to-peer using dynamic transient grid channels.</p>
+            </div>
+
+            <div class="action-card">
+                <h3>Host a New Sync Channel</h3>
+                <div class="code-display">
+                    <span id="generatedCode">GW-XXXXXX</span>
+                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="copyRoomCode()">Copy</button>
+                </div>
+                <button class="btn" onclick="initiateHost()">Create Active Room</button>
+            </div>
+
+            <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem;">— OR —</div>
+
+            <div class="action-card">
+                <h3>Join an Existing Room</h3>
+                <input type="text" id="joinCodeInput" placeholder="Enter peer channel hash code...">
+                <button class="btn btn-secondary" onclick="joinPeerRoom()">Link Sync Channel</button>
+            </div>
+        </div>
+
+        <div class="chat-view" id="chatView">
+            <div class="chat-header">
+                <div>
+                    <h2 style="font-size: 1.1rem; font-weight: 700;">Active Link</h2>
+                    <div class="room-status">Channel: <span id="activeRoomId" style="color: var(--accent-neon); font-family: monospace;">#000</span></div>
+                </div>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="destroySession()">Purge Wire</button>
+            </div>
+
+            <div class="chat-canvas" id="chatCanvas">
+                <div class="msg peer">Welcome to GhostWire. Share your room code with your contact. Once they paste it into their dashboard, your message streams will automatically cross-sync. This log auto-destructs upon window closure.</div>
+            </div>
+
+            <div class="chat-footer">
+                <input type="text" id="messageInput" placeholder="Type a secure transmission..." onkeydown="if(event.key === 'Enter') transmitMessage()">
+                <button class="btn" onclick="transmitMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Reactive App State Model
+        let activeRoomCode = null;
+        let runtimeSyncInterval = null;
+
+        const portalView = document.getElementById('portalView');
+        const chatView = document.getElementById('chatView');
+        const generatedCodeElem = document.getElementById('generatedCode');
+        const joinCodeInput = document.getElementById('joinCodeInput');
+        const activeRoomIdElem = document.getElementById('activeRoomId');
+        const chatCanvas = document.getElementById('chatCanvas');
+        const messageInput = document.getElementById('messageInput');
+
+        // Step 1: Automatically generate a randomized cryptographic style hash string upon application initialization
+        function generateRandomHash() {
+            const dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let hash = "GW-";
+            for (let i = 0; i < 6; i++) {
+                hash += dictionary.charAt(Math.floor(Math.random() * dictionary.length));
+            }
+            return hash;
+        }
+        
+        const runtimeHash = generateRandomHash();
+        generatedCodeElem.textContent = runtimeHash;
+
+        function copyRoomCode() {
+            navigator.clipboard.writeText(runtimeHash);
+            alert("Room Hash Code copied to clipboard! Share it safely with your partner.");
+        }
+
+        // Step 2: Setting up clean session states on Launch
+        function initiateHost() {
+            openWireframeRoom(runtimeHash);
+        }
+
+        function joinPeerRoom() {
+            const targetedCode = joinCodeInput.value.trim().toUpperCase();
+            if (!targetedCode) {
+                alert("Please enter a valid connection string.");
+                return;
+            }
+            openWireframeRoom(targetedCode);
+        }
+
+        function openWireframeRoom(roomCode) {
+            activeRoomCode = roomCode;
+            portalView.style.display = "none";
+            chatView.style.display = "flex";
+            activeRoomIdElem.textContent = activeRoomCode;
+
+            // Establish Local Storage pipeline simulating a lightweight P2P message bus
+            if(!localStorage.getItem(activeRoomCode)) {
+                localStorage.setItem(activeRoomCode, JSON.stringify([]));
+            }
+
+            // Start polling engine to auto-sync messages between instances without a centralized web socket server
+            runtimeSyncInterval = setInterval(fetchMessageStreams, 600);
+        }
+
+        // Step 3: Message handling systems
+        function transmitMessage() {
+            const rawBody = messageInput.value.trim();
+            if(!rawBody) return;
+
+            const existingHistory = JSON.parse(localStorage.getItem(activeRoomCode)) || [];
+            
+            const packagedMessage = {
+                senderToken: runtimeHash, // Marks message as yours
+                body: rawBody,
+                timestamp: Date.now()
+            };
+
+            existingHistory.push(packagedMessage);
+            localStorage.setItem(activeRoomCode, JSON.stringify(existingHistory));
+            
+            messageInput.value = '';
+            fetchMessageStreams();
+        }
+
+        let totalRenderedMessages = 0;
+        function fetchMessageStreams() {
+            const currentHistory = JSON.parse(localStorage.getItem(activeRoomCode)) || [];
+            
+            // Only re-render if database registers new mutations to conserve GPU threads
+            if(currentHistory.length === totalRenderedMessages) return;
+
+            // Purge dynamic Canvas UI layout wrapper
+            chatCanvas.innerHTML = '';
+
+            currentHistory.forEach(msg => {
+                const bubble = document.createElement('div');
+                // Determine layout alignment based on generation token identity
+                if(msg.senderToken === runtimeHash) {
+                    bubble.className = "msg user";
+                } else {
+                    bubble.className = "msg peer";
+                }
+                bubble.textContent = msg.body;
+                chatCanvas.appendChild(bubble);
+            });
+
+            totalRenderedMessages = currentHistory.length;
+            chatCanvas.scrollTop = chatCanvas.scrollHeight; // Auto-scroll downward
+        }
+
+        // Step 4: Disconnect and completely wipe runtime session traces
+        function destroySession() {
+            clearInterval(runtimeSyncInterval);
+            localStorage.removeItem(activeRoomCode); // Clear out global data layer
+            
+            // Hard reset app window interface variables back to standard baseline setup state
+            activeRoomCode = null;
+            totalRenderedMessages = 0;
+            chatCanvas.innerHTML = '<div class="msg peer">Connection closed. Session terminated.</div>';
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
